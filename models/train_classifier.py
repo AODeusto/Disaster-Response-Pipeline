@@ -24,6 +24,15 @@ from sklearn.metrics import precision_score, recall_score, f1_score
 from sklearn.tree import DecisionTreeClassifier
 
 def load_data(database_filepath):
+    """
+    Load data from the SQL db provided with the filepath
+    INPUT
+    database_filepath: path to the db
+    OUTPUT
+    X: df containing "message" col
+    Y: df containing rest of the dataset
+    category_names = list containing the name of each of the categories to classify
+    """
     # load data from database
     engine = create_engine('sqlite:///{}'.format(database_filepath))
     df = pd.read_sql_table('Messages', engine)
@@ -40,6 +49,10 @@ def tokenize(text):
     - Tokenize
     - Remove Stop-Words
     - Stemming / Lemmatizing
+    INPUT
+    text: string containing text of the message
+    OUTPUT
+    lemmatized: Array of tokens after pocessing the text
     """
     # make every word lowercase 
     text = re.sub(r"[^a-zA-Z0-9]"," ", text.lower())    
@@ -53,6 +66,20 @@ def tokenize(text):
 
 
 def build_model():
+    """
+    INPUT 
+    No input
+
+    OUTPUT
+    cv - GridSearchCV objedt containing pipeline and hyperparameters 
+    in order to tune the model
+
+    NOTES
+    It builds a ML Pipeline including:
+    - Vectorizer (Bag of words)
+    - TFIDF Transformer
+    - Multioutput Classifier
+    """
     pipeline = Pipeline([
         ('vect', CountVectorizer(tokenizer = tokenize)),
         ('tfidf', TfidfTransformer()),
@@ -66,6 +93,15 @@ def build_model():
     return cv
 
 def display_results(category_names, Y, y_test, y_pred):
+    """
+    INPUT:
+    - category names  array of names for categories in the multioutput classifier
+    - y_test  subset of data to test the model´s performance
+    - y_pred  preds made by the model 
+
+    OUTPUT
+    - df containing model performance metrics: 'Accuracy', 'Precision', 'Recall', 'F1'
+    """
     results = precision_recall_fscore_support(y_test, y_pred)
     metric = []
     for i, col in enumerate(category_names):
@@ -85,16 +121,35 @@ def display_results(category_names, Y, y_test, y_pred):
     return metrics_df    
 
 def evaluate_model(model, X_test, Y_test, Y, category_names):
+    '''
+    INPUT
+    model: trained model 
+    X_test: df containing test data excepting the label feature
+    Y_test: df containing label feature for test data
+    category_names: list of category names 
+    OUTPUT
+    metrics of the model based on real and predicted values
+    '''
     # predict on test data
     y_pred = model.predict(X_test)
     metrics = display_results(category_names, Y, Y_test, y_pred)
     print(metrics)
 
 def save_model(model, model_filepath):
+    '''
+    INPUT
+    model: trained model
+    model_filepath: path where to save the given trained model
+    OUTPUT
+    '''
     with open(model_filepath, 'wb') as file:
         pickle.dump(model, file)
 
 def main():
+    '''
+    Performs the whole training job using 
+    the functions defined above
+    '''
     if len(sys.argv) == 3:
         database_filepath, model_filepath = sys.argv[1:]
         print('Loading data...\n    DATABASE: {}'.format(database_filepath))

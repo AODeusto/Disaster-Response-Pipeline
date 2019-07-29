@@ -8,6 +8,15 @@ from sqlalchemy import create_engine
 # df = load_data(messages_filepath,categories_filepath)
 
 def load_data(messages_filepath, categories_filepath):
+    '''
+    INPUT
+    messages_filepath: path to file containing the 
+                       csv file with messages data
+    categories_filepath: path to file containing the 
+                         csv file with categories data and names
+    OUTPUT
+    df: merged dataframe containig data from both csv files
+    '''
     messages = pd.read_csv(messages_filepath)
     categories = pd.read_csv(categories_filepath)
     df = messages.merge(categories, how = 'left', on = ['id'])
@@ -15,6 +24,12 @@ def load_data(messages_filepath, categories_filepath):
 
 
 def clean_data(df):
+    '''
+    INPUT
+    df: dataframe with data to be cleaned 
+    OUTPUT
+    df: cleaned dataframe with features engineered and hot-encoded
+    '''
     # create a dataframe of the 36 individual category columns
     categories = df['categories'].str.split(';', expand = True)
     # select the first row of the categories dataframe
@@ -24,7 +39,6 @@ def clean_data(df):
     print('Category names are ', category_colnames)
     # Name columns in 'categories' as category_colnames
     categories.columns = category_colnames
-    
     for column in categories:
         # set each value to be the last character of the string
         categories[column] = categories[column].apply(lambda x: x[-1:])
@@ -48,28 +62,34 @@ def clean_data(df):
     # drop the original categories column from `df`
     df.drop('categories', axis = 1, inplace = True)
     print ('Dropped the original categories column')
-
     # concatenate the original dataframe with the new `categories` dataframe
     print ('Concatenating original df with new separated categories df')
-    df = pd.concat([df, categories], axis = 1)
-        
+    df = pd.concat([df, categories], axis = 1)  
     # Drop rows containing other values nor 1 nor 0
     print ('Columns {} contain other values apart from 0 or 1'.format(other_values))
     for col in other_values:
-        df = df[(df[col] == 0) | (df[col] == 1)]
-        
+        df = df[(df[col] == 0) | (df[col] == 1)]  
     # drop duplicates
     print ('Dropping duplicates')
     df.drop_duplicates(inplace = True)
-    
     return df
 
 def save_data(df, database_filename):
+    '''
+    INPUT
+    model: trained model
+    model_filepath: path where to save the given trained model
+    OUTPUT
+    '''
     table_n = 'Messages'
     engine = create_engine('sqlite:///{}'.format(database_filename))
     df.to_sql(table_n, engine, index=False, if_exists='replace')
       
 def main():
+    '''
+    Performs the whole data processing based
+    on functions defined above
+    '''
     if len(sys.argv) == 4:
 
         messages_filepath, categories_filepath, database_filepath = sys.argv[1:]
